@@ -375,6 +375,7 @@ object HomeRepository {
             }.awaitAll()
             val random = Random((nextRequestKey.hashCode()).absoluteValue + 7)
             cachedCollectionHeroItems = roundRobinCollectionHeroItems(sourceResults)
+                .filterNot { isArabicOrGulfMedia(it.language) }
                 .distinctBy { item -> item.stableKey() }
                 .shuffled(random)
                 .take(HOME_HERO_ITEM_LIMIT)

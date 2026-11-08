@@ -43,6 +43,18 @@ internal object HomeCatalogParser {
                     continue
                 }
 
+                val language = meta.string("original_language")
+                    ?: meta.string("originalLanguage") ?: meta.string("language")
+                val countries = (meta.array("origin_country") + meta.array("originCountry") +
+                    meta.array("country") + meta.array("production_countries")).mapNotNull { country ->
+                    when (country) {
+                        is JsonPrimitive -> country.contentOrNull
+                        is JsonObject -> country.string("iso_3166_1") ?: country.string("name")
+                        else -> null
+                    }
+                } + listOfNotNull(meta.string("country"), meta.string("originCountry"), meta.string("origin_country"))
+                if (isArabicOrGulfMedia(language, countries)) continue
+
                 val landscapePoster = meta.string("landscapePoster")?.takeIf { it.isNotBlank() }
                 val item = MetaPreview(
                     id = id,
@@ -60,6 +72,7 @@ internal object HomeCatalogParser {
                         genre.jsonPrimitive.contentOrNull?.takeIf { it.isNotBlank() }
                     },
                     landscapePoster = landscapePoster,
+                    language = language,
                     runtime = meta.string("runtime")?.trim()?.takeIf { it.isNotBlank() },
                     status = meta.string("status")?.trim()?.takeIf { it.isNotBlank() },
                 )
