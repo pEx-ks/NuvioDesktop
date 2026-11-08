@@ -9,6 +9,7 @@ import com.nuvio.app.features.catalog.CatalogTarget
 import com.nuvio.app.features.home.HomeCatalogDefinition
 import com.nuvio.app.features.home.HomeCatalogSection
 import com.nuvio.app.features.home.MetaPreview
+import com.nuvio.app.features.home.isArabicOrGulfMedia
 import kotlinx.coroutines.runBlocking
 import nuvio.composeapp.generated.resources.Res
 import nuvio.composeapp.generated.resources.media_movies
@@ -144,7 +145,11 @@ internal object ServerCatalog {
             } else {
                 ServerRepository.call(target.connectionId) { provider, session -> provider.resumeItems(session, limit) }
             }.map(connection.presenter())
-            return CatalogPage(items = items, rawItemCount = items.size, nextSkip = null)
+            return CatalogPage(
+                items = items.filterNot { isArabicOrGulfMedia(it.language) },
+                rawItemCount = items.size,
+                nextSkip = null,
+            )
         }
         val library = connection.libraries.firstOrNull { it.id == target.libraryId }
             ?: throw ServerException(ServerFailure.NOT_FOUND)
@@ -165,7 +170,7 @@ internal object ServerCatalog {
         val loaded = skip + page.items.size
         val hasMore = page.items.isNotEmpty() && (page.totalCount?.let { loaded < it } ?: (page.items.size >= limit))
         return CatalogPage(
-            items = page.items.map(connection.presenter()),
+            items = page.items.map(connection.presenter()).filterNot { isArabicOrGulfMedia(it.language) },
             rawItemCount = page.items.size,
             nextSkip = loaded.takeIf { hasMore },
         )
@@ -190,7 +195,7 @@ internal object ServerCatalog {
         ServerRepository.call(ref.connection.id) { provider, session ->
             if (!provider.supports(ServerCapability.SEARCH)) throw ServerException(ServerFailure.UNSUPPORTED)
             provider.search(session, ref.kind, ref.connection.selectedLibraries(ref.kind), query, SERVER_SEARCH_LIMIT)
-        }.map(ref.connection.presenter())
+        }.map(ref.connection.presenter()).filterNot { isArabicOrGulfMedia(it.language) }
 
     suspend fun searchSection(ref: ServerSearchRef, query: String): HomeCatalogSection {
         val items = search(ref, query)
